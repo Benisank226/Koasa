@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Envoyer Token WhatsApp - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fab fa-whatsapp me-2"></i>Vérification WhatsApp
+                    </h3>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class="fab fa-whatsapp fa-5x text-success mb-3"></i>
+                        <h4>Envoyez votre token à l'admin</h4>
+                        <p class="text-muted">
+                            Pour vérifier votre WhatsApp, envoyez le token d'activation à l'administrateur KOASA.
+                        </p>
+                    </div>
+                    
+                    <!-- Token affiché -->
+                    <div class="card border-warning mb-4">
+                        <div class="card-body">
+                            <h5 class="text-danger">Votre Token d'Activation</h5>
+                            <div class="bg-light p-3 rounded mb-3">
+                                <code class="fs-4">{{ token }}</code>
+                            </div>
+                            <small class="text-muted">
+                                Copiez ce token et envoyez-le à l'admin sur WhatsApp
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Informations utilisateur -->
+                    <div class="row text-start mb-4">
+                        <div class="col-md-6">
+                            <strong>Nom:</strong> {{ user.first_name }} {{ user.last_name }}<br>
+                            <strong>Email:</strong> {{ user.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Téléphone:</strong> {{ user.phone }}<br>
+                            <strong>Statut WhatsApp:</strong> 
+                            <span class="badge bg-warning">En attente de vérification</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton WhatsApp -->
+                    <div class="d-grid gap-2">
+                        <a href="{{ whatsapp_url }}" 
+                           target="_blank" 
+                           class="btn btn-success btn-lg">
+                            <i class="fab fa-whatsapp me-2"></i>Ouvrir WhatsApp et Envoyer
+                        </a>
+                        
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Me connecter plus tard
+                        </a>
+                    </div>
+                    
+                    <!-- Instructions -->
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="text-danger">
+                            <i class="fas fa-info-circle me-2"></i>Instructions
+                        </h6>
+                        <ol class="small text-start mb-0">
+                            <li>Cliquez sur "Ouvrir WhatsApp"</li>
+                            <li>Le message est déjà pré-rempli avec votre token</li>
+                            <li>Envoyez le message à l'admin</li>
+                            <li>L'admin vérifiera votre WhatsApp manuellement</li>
+                            <li>Vous recevrez une confirmation par WhatsApp</li>
+                            <li>Vous pourrez ensuite passer commande</li>
+                        </ol>
+                    </div>
+
+                    <!-- Information importante -->
+                    <div class="mt-3 p-3 bg-info text-white rounded">
+                        <h6 class="mb-2">
+                            <i class="fas fa-lightbulb me-2"></i>Bon à savoir
+                        </h6>
+                        <p class="small mb-0">
+                            <strong>Vous pouvez déjà vous connecter !</strong><br>
+                            La vérification WhatsApp est uniquement requise pour passer commande.
+                            Vous pouvez vous connecter avec votre email et mot de passe.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

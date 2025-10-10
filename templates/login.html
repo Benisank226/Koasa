@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-5 col-lg-4">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-danger text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-sign-in-alt me-2"></i>Connexion
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-center text-muted mb-4">
+                        Bienvenue sur KOASA
+                    </p>
+                    
+                    <form method="POST" action="{{ url_for('login') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.login.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                {{ form.login(class="form-control" + (" is-invalid" if form.login.errors else ""), placeholder="email ou +226XXXXXXXX", autofocus=true) }}
+                            </div>
+                            {% if form.login.errors %}
+                            <div class="invalid-feedback d-block">{{ form.login.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">Email ou numéro de téléphone</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••") }}
+                            </div>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.password.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.remember_me(class="form-check-input") }}
+                                {{ form.remember_me.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-danger w-100 py-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('forgot_password') }}" class="text-muted small">
+                            <i class="fas fa-question-circle me-1"></i>Mot de passe oublié ?
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    <p class="mb-0">
+                        Pas encore de compte ? 
+                        <a href="{{ url_for('register') }}" class="text-danger fw-bold">S'inscrire</a>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Activation manuelle -->
+            {% if show_activation %}
+            <div class="card shadow mt-3 border-warning animate-fade-in">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key me-2"></i>Activation WhatsApp
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('activate_account') }}">
+                        {{ activate_form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ activate_form.activation_token.label(class="form-label") }}
+                            {{ activate_form.activation_token(class="form-control", placeholder="Collez votre token d'activation") }}
+                            <small class="text-muted">
+                                Utilisez le token reçu par WhatsApp pour activer votre compte
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-check me-2"></i>Activer WhatsApp
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Information connexion -->
+            <div class="card shadow mt-3 border-info animate-fade-in">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Information Connexion
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-2">
+                        <strong>Vous pouvez vous connecter avec :</strong>
+                    </p>
+                    <ul class="small mb-0">
+                        <li>Votre adresse email (après vérification)</li>
+                        <li>Votre numéro WhatsApp vérifié</li>
+                    </ul>
+                    <p class="small mt-2 mb-0 text-success">
+                        <i class="fas fa-check me-1"></i>
+                        <strong>Connexion autorisée après vérification email</strong>
+                    </p>
+                    <p class="small mb-0 text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>WhatsApp requis pour commander</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

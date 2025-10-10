@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - Commandes - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-shopping-bag me-2 text-danger"></i>Gestion des Commandes</h2>
+        <div>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-outline-danger">
+                <i class="fas fa-users me-2"></i>Gestion Utilisateurs
+            </a>
+        </div>
+    </div>
+    
+    <!-- Barre de recherche et filtres -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin_orders') }}" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Rechercher par ID Commande, Nom ou Téléphone</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Ex: CMD-20241215-ABC123, Jean, +22670123456..."
+                           value="{{ search_query or '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Filtrer par statut</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tous les statuts</option>
+                        <option value="en_attente" {{ 'selected' if status_filter == 'en_attente' }}>En attente</option>
+                        <option value="confirme" {{ 'selected' if status_filter == 'confirme' }}>Confirmées</option>
+                        <option value="preparation" {{ 'selected' if status_filter == 'preparation' }}>En préparation</option>
+                        <option value="livree" {{ 'selected' if status_filter == 'livree' }}>Livrées</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-search me-2"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Confirmation rapide par ID -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Confirmation rapide de commande</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">ID Commande WhatsApp (CMD-...)</label>
+                    <input type="text" id="orderIdInput" class="form-control" 
+                           placeholder="Collez l'ID commande reçu par WhatsApp...">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="button" class="btn btn-success w-100" id="confirmOrderBtn">
+                        <i class="fas fa-check-circle me-2"></i>Confirmer la commande
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-0">{{ stats.total }}</h3>
+                    <small class="text-muted">Total commandes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center border-warning">
+                <div class="card-body">
+                    <h3 class="text-warning mb-0">{{ stats.en_attente }}</h3>
+                    <small class="text-muted">En attente</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success mb-0">{{ stats.confirme }}</h3>
+                    <small class="text-muted">Confirmées</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center border-info">
+                <div class="card-body">
+                    <h3 class="text-info mb-0">{{ stats.preparation }}</h3>
+                    <small class="text-muted">En préparation</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center border-secondary">
+                <div class="card-body">
+                    <h3 class="text-secondary mb-0">{{ stats.livree }}</h3>
+                    <small class="text-muted">Livrées</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm text-center bg-light">
+                <div class="card-body">
+                    <h3 class="text-dark mb-0">{{ "{:,.0f}".format(stats.total_sales or 0) }} FCFA</h3>
+                    <small class="text-muted">Chiffre d'affaires</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tableau des commandes -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des commandes</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID Commande</th>
+                            <th>Client</th>
+                            <th>Contact</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr id="order-row-{{ order.id }}">
+                            <td>
+                                <strong>{{ order.whatsapp_order_id }}</strong>
+                                <br>
+                                <small class="text-muted">{{ order.order_number }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ order.customer.first_name }} {{ order.customer.last_name }}</strong>
+                            </td>
+                            <td>
+                                <div>{{ order.customer.phone }}</div>
+                                <small class="text-muted">{{ order.customer.email }}</small>
+                            </td>
+                            <td>
+                                <strong class="text-danger">{{ "{:,.0f}".format(order.total_amount) }} FCFA</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 
+                                    'warning' if order.status == 'en_attente' 
+                                    else 'success' if order.status == 'confirme'
+                                    else 'info' if order.status == 'preparation'
+                                    else 'secondary'
+                                }} text-{{ 'dark' if order.status == 'en_attente' else 'white' }}" 
+                                id="status-badge-{{ order.id }}">
+                                    {% if order.status == 'en_attente' %}
+                                    <i class="fas fa-clock me-1"></i>En attente
+                                    {% elif order.status == 'confirme' %}
+                                    <i class="fas fa-check me-1"></i>Confirmée
+                                    {% elif order.status == 'preparation' %}
+                                    <i class="fas fa-utensils me-1"></i>Préparation
+                                    {% elif order.status == 'livree' %}
+                                    <i class="fas fa-truck me-1"></i>Livrée
+                                    {% endif %}
+                                </span>
+                                
+                                {% if order.admin_confirmed_at %}
+                                <br>
+                                <small class="text-muted">
+                                    Confirmé: {{ order.admin_confirmed_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ order.created_at.strftime('%d/%m/%Y') }}<br>
+                                <small class="text-muted">{{ order.created_at.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if order.status == 'en_attente' %}
+                                    <button class="btn btn-outline-success" 
+                                            data-order-id="{{ order.whatsapp_order_id }}"
+                                            onclick="confirmOrder(this)"
+                                            title="Confirmer la commande">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-outline-info" 
+                                            onclick="showOrderDetails({{ order.to_dict()|tojson }})"
+                                            title="Détails">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                type="button" data-bs-toggle="dropdown"
+                                                title="Changer statut">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus({{ order.id }}, 'en_attente')">
+                                                    <i class="fas fa-clock text-warning me-2"></i>En attente
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus({{ order.id }}, 'confirme')">
+                                                    <i class="fas fa-check text-success me-2"></i>Confirmée
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus({{ order.id }}, 'preparation')">
+                                                    <i class="fas fa-utensils text-info me-2"></i>Préparation
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#" 
+                                                   onclick="updateOrderStatus({{ order.id }}, 'livree')">
+                                                    <i class="fas fa-truck text-secondary me-2"></i>Livrée
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                <p class="text-muted">
+                    {% if search_query or status_filter %}
+                    Aucune commande trouvée pour ces critères
+                    {% else %}
+                    Aucune commande enregistrée
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détails Commande -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-shopping-bag me-2"></i>Détails de la commande</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="orderDetailsContent">
+                <!-- Rempli dynamiquement -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Confirmation rapide par ID
+document.getElementById('confirmOrderBtn').addEventListener('click', async function() {
+    const orderId = document.getElementById('orderIdInput').value.trim();
+    
+    if (!orderId) {
+        showAlert('warning', 'Veuillez saisir un ID de commande');
+        return;
+    }
+    
+    if (!orderId.startsWith('CMD-')) {
+        showAlert('warning', 'L\'ID commande doit commencer par CMD-');
+        return;
+    }
+    
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Confirmation...';
+    
+    try {
+        const response = await fetch(`/admin/confirm-order/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            document.getElementById('orderIdInput').value = '';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+    } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-check-circle me-2"></i>Confirmer la commande';
+    }
+});
+
+// Confirmation depuis le tableau
+async function confirmOrder(btn) {
+    const orderId = btn.dataset.orderId;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    try {
+        const response = await fetch(`/admin/confirm-order/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+    }
+}
+
+// Mise à jour du statut
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const response = await fetch(`/admin/update-order-status/${orderId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur: ' + error.message);
+    }
+}
+
+// Afficher détails commande
+function showOrderDetails(order) {
+    const content = document.getElementById('orderDetailsContent');
+    
+    const statusMap = {
+        'en_attente': { class: 'warning', text: 'En attente', icon: 'clock' },
+        'confirme': { class: 'success', text: 'Confirmée', icon: 'check' },
+        'preparation': { class: 'info', text: 'En préparation', icon: 'utensils' },
+        'livree': { class: 'secondary', text: 'Livrée', icon: 'truck' }
+    };
+    
+    const status = statusMap[order.status] || statusMap.en_attente;
+    
+    content.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Informations Commande</h6>
+                <table class="table table-sm">
+                    <tr><th>ID WhatsApp:</th><td><strong>${order.whatsapp_order_id}</strong></td></tr>
+                    <tr><th>Numéro interne:</th><td>${order.order_number}</td></tr>
+                    <tr><th>Statut:</th>
+                        <td>
+                            <span class="badge bg-${status.class}">
+                                <i class="fas fa-${status.icon} me-1"></i>${status.text}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr><th>Total:</th><td><strong class="text-danger">${order.total_amount.toLocaleString('fr-FR')} FCFA</strong></td></tr>
+                    <tr><th>Créée le:</th><td>${new Date(order.created_at).toLocaleString('fr-FR')}</td></tr>
+                    ${order.admin_confirmed_at ? 
+                        `<tr><th>Confirmée le:</th><td>${new Date(order.admin_confirmed_at).toLocaleString('fr-FR')}</td></tr>` : 
+                        ''
+                    }
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Informations Client</h6>
+                <table class="table table-sm">
+                    <tr><th>Nom:</th><td>${order.customer.first_name} ${order.customer.last_name}</td></tr>
+                    <tr><th>Email:</th><td>${order.customer.email}</td></tr>
+                    <tr><th>Téléphone:</th><td>${order.customer.phone}</td></tr>
+                </table>
+                
+                <h6 class="mt-3">Livraison</h6>
+                <p>${order.delivery_address || '<em class="text-muted">Aucune adresse spécifiée</em>'}</p>
+                
+                ${order.notes ? `
+                <h6 class="mt-3">Notes</h6>
+                <p>${order.notes}</p>
+                ` : ''}
+            </div>
+        </div>
+        
+        <h6 class="mt-4">Articles commandés</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Article</th>
+                        <th>Quantité</th>
+                        <th>Prix unitaire</th>
+                        <th>Sous-total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${order.items.map(item => `
+                        <tr>
+                            <td>${item.product_name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.unit_price.toLocaleString('fr-FR')} FCFA</td>
+                            <td>${item.subtotal.toLocaleString('fr-FR')} FCFA</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot>
+                    <tr class="table-active">
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>${order.total_amount.toLocaleString('fr-FR')} FCFA</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show animate-fade-in`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

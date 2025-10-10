@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Compte Activé - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Email Vérifié !
+                    </h3>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+                        <h4>Félicitations {{ user.first_name }} !</h4>
+                        <p class="lead">
+                            Votre email a été vérifié avec succès.
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-info mb-4">
+                        <h6>
+                            <i class="fas fa-info-circle me-2"></i>Bonne nouvelle !
+                        </h6>
+                        <p class="mb-0">
+                            <strong>Vous pouvez maintenant vous connecter !</strong><br>
+                            Cependant, vous devrez vérifier votre WhatsApp pour passer commande.
+                        </p>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-success h-100">
+                                <div class="card-body">
+                                    <i class="fab fa-whatsapp fa-3x text-success mb-3"></i>
+                                    <h5>Vérifier WhatsApp</h5>
+                                    <p class="small text-muted">
+                                        Activez votre compte maintenant en envoyant votre token à l'admin via WhatsApp.
+                                    </p>
+                                    <a href="{{ url_for('verify_whatsapp_now', user_id=user.id) }}" 
+                                       class="btn btn-success w-100">
+                                        <i class="fab fa-whatsapp me-2"></i>Vérifier WhatsApp
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-primary h-100">
+                                <div class="card-body">
+                                    <i class="fas fa-sign-in-alt fa-3x text-primary mb-3"></i>
+                                    <h5>Se Connecter</h5>
+                                    <p class="small text-muted">
+                                        Connectez-vous maintenant et vérifiez WhatsApp plus tard.
+                                    </p>
+                                    <a href="{{ url_for('login') }}" 
+                                       class="btn btn-primary w-100">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Se Connecter
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-light rounded">
+                        <h6 class="text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>À savoir
+                        </h6>
+                        <p class="small mb-0">
+                            <strong>WhatsApp requis pour commander :</strong> Vous devez vérifier votre WhatsApp 
+                            avant de pouvoir passer commande. L'admin activera manuellement votre compte après 
+                            réception de votre token.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

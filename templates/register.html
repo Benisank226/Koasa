@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-danger text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Créer un compte
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-center text-muted mb-4">
+                        Rejoignez KOASA pour profiter de nos viandes de qualité
+                    </p>
+                    
+                    <form method="POST" action="{{ url_for('register') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name.label(class="form-label") }}
+                                {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else ""), placeholder="Jean") }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback">{{ form.first_name.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name.label(class="form-label") }}
+                                {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else ""), placeholder="Sankara") }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback">{{ form.last_name.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="votre@email.com") }}
+                            </div>
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.phone.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+22670123456 ou 70123456") }}
+                            </div>
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">{{ form.phone.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">
+                                Format Burkina Faso: +226XXXXXXXX ou XXXXXXXXX (8 chiffres)
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••") }}
+                            </div>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.password.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">Minimum 8 caractères</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            {{ form.confirm_password.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), placeholder="••••••••") }}
+                            </div>
+                            {% if form.confirm_password.errors %}
+                            <div class="invalid-feedback d-block">{{ form.confirm_password.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>
+                                Après inscription, vous recevrez un code de vérification par email.
+                                Vous devrez vérifier votre email pour activer votre compte.
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-danger w-100 py-2">
+                            <i class="fas fa-user-plus me-2"></i>S'inscrire
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    <p class="mb-0">
+                        Déjà inscrit ? 
+                        <a href="{{ url_for('login') }}" class="text-danger fw-bold">Se connecter</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.getElementById('phone');
+    
+    // Auto-formatage du numéro de téléphone
+    phoneInput.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^0-9+]/g, '');
+        
+        // Si commence par 226 ou +226, garder tel quel
+        if (value.startsWith('+226') || value.startsWith('226')) {
+            this.value = value;
+        } 
+        // Si 8 chiffres, formater en +226
+        else if (value.length === 8 && /^\d+$/.test(value)) {
+            this.value = '+226' + value;
+        }
+        // Autres cas
+        else {
+            this.value = value;
+        }
+    });
+});
+</script>
+{% endblock %}

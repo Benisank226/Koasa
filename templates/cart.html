@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Panier - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3">
+                    <i class="fas fa-shopping-cart me-2 text-danger"></i>Mon Panier
+                </h2>
+                {% if cart|length > 0 %}
+                <button class="btn btn-outline-danger" id="clearCartBtn">
+                    <i class="fas fa-trash me-2"></i>Vider le panier
+                </button>
+                {% endif %}
+            </div>
+            
+            <!-- Vérification WhatsApp requise -->
+            {% if not current_user.whatsapp_verified %}
+            <div class="alert alert-warning shadow-sm animate-fade-in">
+                <h5 class="alert-heading">
+                    <i class="fab fa-whatsapp me-2"></i>Vérification WhatsApp requise
+                </h5>
+                <p class="mb-3">
+                    Vous devez vérifier votre WhatsApp avant de pouvoir passer commande.
+                </p>
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="small mb-2"><strong>Comment vérifier :</strong></p>
+                        <ol class="small mb-0">
+                            <li>Allez dans votre profil</li>
+                            <li>Générez un token d'activation</li>
+                            <li>Envoyez-le à l'admin via WhatsApp</li>
+                            <li>L'admin activera votre compte</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a href="{{ url_for('profile') }}" class="btn btn-warning">
+                            <i class="fas fa-user me-2"></i>Vérifier mon Profil
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Message panier vide -->
+            <div id="emptyCartMessage" class="text-center py-5" style="display: none;">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">Votre panier est vide</h4>
+                <p class="text-muted mb-4">Découvrez nos délicieuses viandes et remplissez votre panier !</p>
+                <a href="{{ url_for('index') }}" class="btn btn-danger">
+                    <i class="fas fa-shopping-bag me-2"></i>Découvrir nos produits
+                </a>
+            </div>
+            
+            <!-- Liste des articles -->
+            <div id="cartContainer">
+                <!-- Rempli dynamiquement par JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Résumé de commande -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm cart-summary">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Résumé</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Sous-total:</span>
+                        <span id="cartSubtotal">0 FCFA</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Livraison:</span>
+                        <span class="text-success">Gratuite</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <strong>Total:</strong>
+                        <strong class="text-danger fs-5" id="cartTotal">0 FCFA</strong>
+                    </div>
+                    
+                    <!-- Adresse de livraison -->
+                    <div class="mb-3">
+                        <label class="form-label small">Adresse de livraison</label>
+                        <textarea class="form-control" id="deliveryAddress" rows="3" 
+                                  placeholder="Indiquez votre adresse complète..."></textarea>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label class="form-label small">Notes (optionnel)</label>
+                        <textarea class="form-control" id="orderNotes" rows="2" 
+                                  placeholder="Instructions spéciales, préférences..."></textarea>
+                    </div>
+                    
+                    <!-- Bouton d'action -->
+                    <div id="cartActions" style="display: none;">
+                        {% if current_user.whatsapp_verified %}
+                        <button class="btn btn-success w-100 btn-lg" id="sendOrderWhatsAppBtn">
+                            <i class="fab fa-whatsapp me-2"></i>Commander via WhatsApp
+                        </button>
+                        <small class="text-muted text-center d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Ouvre WhatsApp avec votre commande pré-remplie
+                        </small>
+                        {% else %}
+                        <div class="alert alert-warning text-center">
+                            <i class="fab fa-whatsapp me-2"></i>
+                            <strong>WhatsApp non vérifié</strong><br>
+                            <small>Vérifiez votre WhatsApp pour commander</small>
+                            <div class="mt-2">
+                                <a href="{{ url_for('profile') }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-user me-1"></i>Vérifier mon Profil
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informations importantes -->
+            <div class="card shadow-sm mt-4 border-info">
+                <div class="card-body">
+                    <h6 class="text-info">
+                        <i class="fas fa-info-circle me-2"></i>Comment commander
+                    </h6>
+                    <ol class="small text-muted mb-0">
+                        <li>Remplissez votre panier</li>
+                        <li>Vérifiez votre WhatsApp (obligatoire)</li>
+                        <li>Indiquez votre adresse</li>
+                        <li>Cliquez sur "Commander via WhatsApp"</li>
+                        <li>WhatsApp s'ouvre avec votre commande</li>
+                        <li>Envoyez le message à l'admin</li>
+                        <li>Suivez votre commande dans votre profil</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialisation spécifique à la page panier
+document.addEventListener('DOMContentLoaded', function() {
+    initCartPage();
+    
+    // Mettre à jour le sous-total
+    updateCartSummary();
+});
+
+function updateCartSummary() {
+    const subtotal = getCartTotal();
+    const subtotalElement = document.getElementById('cartSubtotal');
+    const totalElement = document.getElementById('cartTotal');
+    
+    if (subtotalElement) {
+        subtotalElement.textContent = subtotal.toLocaleString('fr-FR') + ' FCFA';
+    }
+    if (totalElement) {
+        totalElement.textContent = subtotal.toLocaleString('fr-FR') + ' FCFA';
+    }
+}
+
+// Surcharger la fonction renderCart pour inclure le résumé
+const originalRenderCart = renderCart;
+renderCart = function() {
+    originalRenderCart();
+    updateCartSummary();
+};
+
+// Modifier la fonction d'envoi WhatsApp
+async function sendOrderByWhatsApp() {
+    // Vérifier si WhatsApp est vérifié (sécurité supplémentaire)
+    {% if not current_user.whatsapp_verified %}
+    showToast('❌ Veuillez vérifier votre WhatsApp avant de commander', 'warning');
+    window.location.href = "{{ url_for('profile') }}";
+    return;
+    {% endif %}
+
+    if (cart.length === 0) {
+        showToast('❌ Votre panier est vide', 'warning');
+        return;
+    }
+    
+    const btn = document.getElementById('sendOrderWhatsAppBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Préparation...';
+    
+    try {
+        // Calculer correctement le total
+        const total = getCartTotal();
+        
+        // Récupérer l'adresse et les notes
+        const deliveryAddress = document.getElementById('deliveryAddress')?.value || '';
+        const notes = document.getElementById('orderNotes')?.value || '';
+        
+        // Préparer les données du panier avec sous-totaux calculés
+        const cartItems = cart.map(item => ({
+            ...item,
+            subtotal: item.price * item.quantity
+        }));
+        
+        const response = await fetch('/api/send-order-whatsapp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                items: cartItems,
+                total: total,
+                delivery_address: deliveryAddress,
+                notes: notes
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            
+            // VIDER LE PANIER après envoi réussi
+            clearCart();
+            renderCart();
+            updateCartSummary();
+            
+            // Ouvrir WhatsApp dans un nouvel onglet
+            if (data.whatsapp_url) {
+                window.open(data.whatsapp_url, '_blank');
+            }
+            
+            // Afficher l'ID de commande
+            if (data.order_id) {
+                showModal(
+                    '✅ Commande créée!',
+                    `Votre commande a été créée avec succès!<br><br>
+                    <strong>ID de commande:</strong> ${data.order_id}<br><br>
+                    WhatsApp s'ouvre automatiquement. Veuillez envoyer le message à l'admin.<br><br>
+                    Vous pouvez suivre votre commande dans votre profil.`,
+                    'success'
+                );
+            }
+        } else {
+            // Si WhatsApp n'est pas vérifié, rediriger vers le profil
+            if (data.message.includes('WhatsApp')) {
+                showToast('❌ ' + data.message, 'warning');
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('profile') }}";
+                }, 2000);
+            } else {
+                showToast('❌ ' + data.message, 'danger');
+            }
+        }
+    } catch (error) {
+        showToast('❌ Erreur: ' + error.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fab fa-whatsapp me-2"></i>Commander via WhatsApp';
+    }
+}
+
+// Remplacer l'ancienne fonction
+document.addEventListener('DOMContentLoaded', function() {
+    initCartPage();
+    updateCartSummary();
+    
+    // Nouveau bouton
+    const whatsappBtn = document.getElementById('sendOrderWhatsAppBtn');
+    if (whatsappBtn) {
+        whatsappBtn.addEventListener('click', sendOrderByWhatsApp);
+    }
+});
+</script>
+{% endblock %}

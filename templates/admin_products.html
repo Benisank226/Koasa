@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - Produits - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-boxes me-2 text-danger"></i>Gestion des Produits</h2>
+        <div>
+            <a href="{{ url_for('admin_categories') }}" class="btn btn-outline-info me-2">
+                <i class="fas fa-tags me-2"></i>Catégories
+            </a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                <i class="fas fa-plus me-2"></i>Nouveau Produit
+            </button>
+        </div>
+    </div>
+    
+    <!-- Barre de recherche et filtres -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin_products') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Rechercher un produit</label>
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Nom du produit..."
+                           value="{{ search_query or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Catégorie</label>
+                    <select name="category" class="form-select">
+                        <option value="">Toutes les catégories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {{ 'selected' if category_filter == category.id|string }}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Disponibilité</label>
+                    <select name="availability" class="form-select">
+                        <option value="">Tous les produits</option>
+                        <option value="available" {{ 'selected' if availability_filter == 'available' }}>Disponibles</option>
+                        <option value="unavailable" {{ 'selected' if availability_filter == 'unavailable' }}>Indisponibles</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-search me-2"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-0">{{ stats.total }}</h3>
+                    <small class="text-muted">Total produits</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success mb-0">{{ stats.available }}</h3>
+                    <small class="text-muted">Disponibles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center border-warning">
+                <div class="card-body">
+                    <h3 class="text-warning mb-0">{{ stats.unavailable }}</h3>
+                    <small class="text-muted">Indisponibles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center border-info">
+                <div class="card-body">
+                    <h3 class="text-info mb-0">{{ categories|length }}</h3>
+                    <small class="text-muted">Catégories</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tableau des produits -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des produits</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if products %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Produit</th>
+                            <th>Catégorie</th>
+                            <th>Prix</th>
+                            <th>Stock</th>
+                            <th>Statut</th>
+                            <th>Créé le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr id="product-row-{{ product.id }}">
+                            <td><strong>#{{ product.id }}</strong></td>
+                            <td>
+                                <strong>{{ product.name }}</strong>
+                                {% if product.description %}
+                                <br><small class="text-muted">{{ product.description[:50] }}{% if product.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">
+                                    <i class="{{ product.category_ref.icon }} me-1"></i>{{ product.category_ref.name }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="text-danger">{{ "{:,.0f}".format(product.price) }} FCFA</strong>
+                                <br><small class="text-muted">/ {{ product.unit }}</small>
+                            </td>
+                            <td>
+                                {% if product.stock > 10 %}
+                                <span class="badge bg-success">{{ product.stock }}</span>
+                                {% elif product.stock > 0 %}
+                                <span class="badge bg-warning text-dark">{{ product.stock }}</span>
+                                {% else %}
+                                <span class="badge bg-danger">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.is_available %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>Disponible
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-times me-1"></i>Indisponible
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ product.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info" 
+                                            onclick="editProduct({{ product.to_dict()|tojson }})"
+                                            title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-{{ 'warning' if product.is_available else 'success' }}" 
+                                            onclick="toggleProductAvailability({{ product.id }}, {{ product.is_available|lower }})"
+                                            title="{{ 'Désactiver' if product.is_available else 'Activer' }}">
+                                        <i class="fas fa-{{ 'pause' if product.is_available else 'play' }}"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" 
+                                            onclick="deleteProduct({{ product.id }}, '{{ product.name }}')"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <p class="text-muted">
+                    {% if search_query or category_filter or availability_filter %}
+                    Aucun produit trouvé pour ces critères
+                    {% else %}
+                    Aucun produit enregistré
+                    {% endif %}
+                </p>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="fas fa-plus me-2"></i>Ajouter le premier produit
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Produit -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouveau Produit</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProductForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nom du produit *</label>
+                            <input type="text" class="form-control" id="productName" required
+                                   placeholder="Ex: Bœuf - Entrecôte">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Catégorie *</label>
+                            <select class="form-select" id="productCategory" required>
+                                <option value="">Sélectionner une catégorie</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="productDescription" rows="3"
+                                  placeholder="Description du produit..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Prix (FCFA) *</label>
+                            <input type="number" class="form-control" id="productPrice" required
+                                   min="0" step="100" placeholder="4500">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Unité *</label>
+                            <select class="form-select" id="productUnit" required>
+                                <option value="kg">kg</option>
+                                <option value="pièce">pièce</option>
+                                <option value="g">g</option>
+                                <option value="L">L</option>
+                                <option value="paquet">paquet</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Stock initial</label>
+                            <input type="number" class="form-control" id="productStock"
+                                   min="0" value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Image URL (optionnel)</label>
+                        <input type="url" class="form-control" id="productImage"
+                               placeholder="https://example.com/image.jpg">
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="productAvailable" checked>
+                        <label class="form-check-label" for="productAvailable">
+                            Produit disponible à la vente
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-success" onclick="createProduct()">
+                    <i class="fas fa-save me-2"></i>Créer le produit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Produit -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Modifier le Produit</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editProductContent">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Créer un nouveau produit
+async function createProduct() {
+    const form = document.getElementById('addProductForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const productData = {
+        name: document.getElementById('productName').value.trim(),
+        description: document.getElementById('productDescription').value.trim(),
+        price: parseFloat(document.getElementById('productPrice').value),
+        unit: document.getElementById('productUnit').value,
+        category_id: parseInt(document.getElementById('productCategory').value),
+        image_url: document.getElementById('productImage').value.trim(),
+        stock: parseInt(document.getElementById('productStock').value) || 0,
+        is_available: document.getElementById('productAvailable').checked
+    };
+    
+    try {
+        const response = await fetch('/admin/api/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(productData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+            document.getElementById('addProductForm').reset();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Modifier un produit
+function editProduct(product) {
+    const content = document.getElementById('editProductContent');
+    content.innerHTML = `
+        <form id="editProductForm">
+            <input type="hidden" id="editProductId" value="${product.id}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nom du produit *</label>
+                    <input type="text" class="form-control" id="editProductName" value="${product.name}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Catégorie *</label>
+                    <select class="form-select" id="editProductCategory" required>
+                        {% for category in categories %}
+                        <option value="${category.id}" ${product.category_id == category.id ? 'selected' : ''}>
+                            ${category.name}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="editProductDescription" rows="3">${product.description || ''}</textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Prix (FCFA) *</label>
+                    <input type="number" class="form-control" id="editProductPrice" value="${product.price}" required min="0" step="100">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Unité *</label>
+                    <select class="form-select" id="editProductUnit" required>
+                        <option value="kg" ${product.unit === 'kg' ? 'selected' : ''}>kg</option>
+                        <option value="pièce" ${product.unit === 'pièce' ? 'selected' : ''}>pièce</option>
+                        <option value="g" ${product.unit === 'g' ? 'selected' : ''}>g</option>
+                        <option value="L" ${product.unit === 'L' ? 'selected' : ''}>L</option>
+                        <option value="paquet" ${product.unit === 'paquet' ? 'selected' : ''}>paquet</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Stock</label>
+                    <input type="number" class="form-control" id="editProductStock" value="${product.stock}" min="0">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Image URL</label>
+                <input type="url" class="form-control" id="editProductImage" value="${product.image_url || ''}">
+            </div>
+            
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="editProductAvailable" ${product.is_available ? 'checked' : ''}>
+                <label class="form-check-label" for="editProductAvailable">
+                    Produit disponible à la vente
+                </label>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-success" onclick="updateProduct()">
+                    <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+            </div>
+        </form>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('editProductModal')).show();
+}
+
+// Mettre à jour un produit
+async function updateProduct() {
+    const form = document.getElementById('editProductForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const productId = document.getElementById('editProductId').value;
+    const productData = {
+        name: document.getElementById('editProductName').value.trim(),
+        description: document.getElementById('editProductDescription').value.trim(),
+        price: parseFloat(document.getElementById('editProductPrice').value),
+        unit: document.getElementById('editProductUnit').value,
+        category_id: parseInt(document.getElementById('editProductCategory').value),
+        image_url: document.getElementById('editProductImage').value.trim(),
+        stock: parseInt(document.getElementById('editProductStock').value) || 0,
+        is_available: document.getElementById('editProductAvailable').checked
+    };
+    
+    try {
+        const response = await fetch(`/admin/api/products/${productId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(productData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Basculer la disponibilité d'un produit
+async function toggleProductAvailability(productId, isAvailable) {
+    try {
+        const response = await fetch(`/admin/api/products/${productId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ is_available: !isAvailable })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Supprimer un produit
+async function deleteProduct(productId, productName) {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le produit "${productName}" ?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/products/${productId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show animate-fade-in`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

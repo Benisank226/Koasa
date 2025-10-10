@@ -1,0 +1,22 @@
+# Fichiers sensibles
+.env
+.env.production
+instance/koasa.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environnements virtuels
+venv/
+env/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

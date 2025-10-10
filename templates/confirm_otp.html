@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Vérification WhatsApp - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fab fa-whatsapp me-2"></i>Vérification WhatsApp
+                    </h3>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class="fab fa-whatsapp fa-5x text-success mb-3"></i>
+                        <h4>Vérifiez votre numéro</h4>
+                        <p class="text-muted">
+                            Nous avons envoyé un code de vérification à 6 chiffres sur votre WhatsApp.
+                            <br><strong>{{ user.phone }}</strong>
+                        </p>
+                    </div>
+                    
+                    <form id="otpVerificationForm">
+                        <div class="mb-4">
+                            <label class="form-label h5">Code de vérification</label>
+                            <input type="text" id="otpCode" class="form-control form-control-lg text-center fs-3" 
+                                   maxlength="6" placeholder="123456" style="letter-spacing: 0.5em;">
+                            <small class="text-muted">Saisissez les 6 chiffres reçus</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success btn-lg" id="verifyOtpBtn">
+                                <i class="fas fa-check-circle me-2"></i>Vérifier le code
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="resendOtpBtn">
+                                <i class="fas fa-redo me-2"></i>Renvoyer le code
+                            </button>
+                            <a href="{{ url_for('login') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Important
+                        </h6>
+                        <p class="small mb-0">
+                            La vérification WhatsApp est obligatoire pour passer commande. 
+                            Le code est valable pendant 10 minutes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otpCode');
+    const verifyBtn = document.getElementById('verifyOtpBtn');
+    const resendBtn = document.getElementById('resendOtpBtn');
+    
+    // Auto-focus sur le champ OTP
+    otpInput.focus();
+    
+    // Formatage automatique
+    otpInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        if (this.value.length === 6) {
+            verifyBtn.focus();
+        }
+    });
+    
+    // Vérification OTP
+    verifyBtn.addEventListener('click', async function() {
+        const code = otpInput.value.trim();
+        
+        if (code.length !== 6) {
+            showAlert('warning', 'Veuillez saisir les 6 chiffres du code');
+            return;
+        }
+        
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Vérification...';
+        
+        try {
+            const response = await fetch('/profile/verify-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ otp_code: code })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showModal(
+                    '✅ Vérification réussie!',
+                    'Votre numéro WhatsApp a été vérifié avec succès. Vous pouvez maintenant passer commande.',
+                    'success'
+                );
+                
+                setTimeout(() => {
+                    window.location.href = '/profile';
+                }, 2000);
+            } else {
+                showAlert('danger', data.message);
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Vérifier le code';
+            }
+        } catch (error) {
+            showAlert('danger', 'Erreur réseau: ' + error.message);
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Vérifier le code';
+        }
+    });
+    
+    // Renvoyer OTP
+    resendBtn.addEventListener('click', async function() {
+        resendBtn.disabled = true;
+        resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Envoi...';
+        
+        try {
+            const response = await fetch('/profile/generate-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', data.message);
+                
+                // Désactiver le bouton pendant 60 secondes
+                let countdown = 60;
+                const interval = setInterval(() => {
+                    resendBtn.innerHTML = `Renvoyer (${countdown}s)`;
+                    countdown--;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        resendBtn.disabled = false;
+                        resendBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Renvoyer le code';
+                    }
+                }, 1000);
+            } else {
+                showAlert('danger', data.message);
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Renvoyer le code';
+            }
+        } catch (error) {
+            showAlert('danger', 'Erreur réseau: ' + error.message);
+            resendBtn.disabled = false;
+            resendBtn.innerHTML = '<i class="fas fa-redo me-2"></i>Renvoyer le code';
+        }
+    });
+    
+    // Entrée pour soumettre
+    otpInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            verifyBtn.click();
+        }
+    });
+    
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show animate-fade-in`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+    
+    function showModal(title, message, type = 'info') {
+        // Votre fonction showModal existante
+        const modalHtml = `
+            <div class="modal fade" id="dynamicModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title">
+                                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'info-circle text-info'} me-2"></i>${title}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${message}
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const oldModal = document.getElementById('dynamicModal');
+        if (oldModal) oldModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('dynamicModal'));
+        modal.show();
+        
+        document.getElementById('dynamicModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+});
+</script>
+{% endblock %}

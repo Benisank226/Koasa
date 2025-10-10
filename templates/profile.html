@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <div class="avatar-circle bg-danger text-white mx-auto mb-3">
+                        <i class="fas fa-user fa-3x"></i>
+                    </div>
+                    <h5 class="mb-1">{{ current_user.first_name }} {{ current_user.last_name }}</h5>
+                    <p class="text-muted small mb-2">{{ current_user.email }}</p>
+                    
+                    {% if current_user.is_admin %}
+                    <span class="badge bg-danger mb-2"><i class="fas fa-crown me-1"></i>Admin</span>
+                    {% endif %}
+                    
+                    <div class="mt-2">
+                        {% if current_user.email_verified %}
+                        <span class="badge bg-success mb-1">
+                            <i class="fas fa-envelope me-1"></i>Email vérifié
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark mb-1">
+                            <i class="fas fa-exclamation-triangle me-1"></i>Email non vérifié
+                        </span>
+                        {% endif %}
+                        
+                        {% if current_user.whatsapp_verified %}
+                        <span class="badge bg-success">
+                            <i class="fab fa-whatsapp me-1"></i>WhatsApp vérifié
+                        </span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle me-1"></i>WhatsApp non vérifié
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vérification WhatsApp -->
+            {% if not current_user.whatsapp_verified %}
+            <div class="card shadow-sm mt-3 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fab fa-whatsapp me-2"></i>Vérifier WhatsApp</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">
+                        <strong>Vérifiez votre WhatsApp pour passer commande.</strong>
+                    </p>
+                    
+                    <div class="mb-3">
+                        <p class="small mb-1"><strong>Votre token :</strong></p>
+                        <div class="bg-light p-2 rounded">
+                            <code id="activationToken" class="small">{{ current_user.activation_token or 'Générer un token' }}</code>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success btn-sm w-100 mb-2" id="generateTokenBtn">
+                        <i class="fas fa-key me-1"></i>Générer Token
+                    </button>
+                    
+                    <button class="btn btn-warning btn-sm w-100" id="sendWhatsAppBtn">
+                        <i class="fab fa-whatsapp me-1"></i>Envoyer à l'Admin
+                    </button>
+                    
+                    <small class="text-muted d-block mt-2">
+                        Envoyez ce token à l'admin sur WhatsApp pour vérifier votre compte.
+                    </small>
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow-sm mt-3 border-success">
+                <div class="card-body text-center">
+                    <i class="fab fa-whatsapp fa-2x text-success mb-2"></i>
+                    <p class="small mb-0 text-success">
+                        <strong>WhatsApp vérifié</strong><br>
+                        Vous pouvez passer commande
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <!-- Alertes importantes -->
+            {% if not current_user.whatsapp_verified %}
+            <div class="alert alert-warning shadow-sm animate-fade-in">
+                <h5 class="alert-heading">
+                    <i class="fab fa-whatsapp me-2"></i>Vérification WhatsApp requise
+                </h5>
+                <p class="mb-3">
+                    Vous devez vérifier votre numéro WhatsApp avant de pouvoir passer commande.
+                    <strong>Numéro actuel : {{ current_user.phone }}</strong>
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="small mb-2"><strong>Comment vérifier :</strong></p>
+                        <ol class="small mb-0">
+                            <li>Générez un token d'activation</li>
+                            <li>Envoyez-le à l'admin via WhatsApp</li>
+                            <li>L'admin activera votre compte</li>
+                            <li>Vous pourrez alors commander</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="small mb-2"><strong>Votre token :</strong></p>
+                        <div class="bg-light p-2 rounded mb-2">
+                            <code id="mainActivationToken" class="small">{{ current_user.activation_token or 'Token non généré' }}</code>
+                        </div>
+                        <button class="btn btn-success btn-sm w-100" id="mainGenerateTokenBtn">
+                            <i class="fas fa-key me-1"></i>Générer Token
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Formulaire de profil -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Informations personnelles</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('profile') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name.label(class="form-label") }}
+                                {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else "")) }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback">{{ form.first_name.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name.label(class="form-label") }}
+                                {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else "")) }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback">{{ form.last_name.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                            {% if form.email.errors %}
+                            <div class="invalid-feedback">{{ form.email.errors[0] }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.phone.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                                <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                            </div>
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">{{ form.phone.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">
+                                Modification du numéro nécessitera une nouvelle vérification WhatsApp
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Historique des commandes -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Mes commandes</h5>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID Commande</th>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ order.whatsapp_order_id }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ order.order_number }}</small>
+                                    </td>
+                                    <td>{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><strong>{{ "{:,.0f}".format(order.total_amount) }} FCFA</strong></td>
+                                    <td>
+                                        {% if order.status == 'en_attente' %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>En attente
+                                        </span>
+                                        {% elif order.status == 'confirme' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Confirmée
+                                        </span>
+                                        {% elif order.status == 'preparation' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-utensils me-1"></i>Préparation
+                                        </span>
+                                        {% elif order.status == 'livree' %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-truck me-1"></i>Livrée
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ order.status }}</span>
+                                        {% endif %}
+                                        
+                                        {% if order.admin_confirmed_at %}
+                                        <br>
+                                        <small class="text-muted">
+                                            Confirmé: {{ order.admin_confirmed_at.strftime('%d/%m/%Y %H:%M') }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.status != 'en_attente' %}
+                                        <a href="{{ url_for('download_invoice', order_id=order.id) }}" 
+                                           class="btn btn-sm btn-outline-danger" 
+                                           title="Télécharger la facture">
+                                            <i class="fas fa-file-pdf"></i> Facture
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted small">
+                                            Facture disponible après confirmation
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Statistiques personnelles -->
+                    <div class="row mt-4 text-center">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <h5 class="text-danger mb-0">{{ orders|length }}</h5>
+                                    <small class="text-muted">Total commandes</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <h5 class="text-warning mb-0">{{ orders|selectattr('status', 'equalto', 'en_attente')|list|length }}</h5>
+                                    <small class="text-muted">En attente</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <h5 class="text-success mb-0">{{ orders|selectattr('status', 'equalto', 'confirme')|list|length }}</h5>
+                                    <small class="text-muted">Confirmées</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <h5 class="text-info mb-0">{{ orders|selectattr('status', 'equalto', 'preparation')|list|length }}</h5>
+                                    <small class="text-muted">En préparation</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <p class="text-muted text-center py-4">
+                        <i class="fas fa-shopping-bag fa-3x mb-3 d-block"></i>
+                        {% if not current_user.whatsapp_verified %}
+                        <strong>Vérifiez votre WhatsApp pour passer votre première commande</strong>
+                        {% else %}
+                        Aucune commande pour le moment
+                        {% endif %}
+                    </p>
+                    <div class="text-center">
+                        <a href="{{ url_for('index') }}" class="btn btn-danger">
+                            <i class="fas fa-shopping-cart me-2"></i>Faire mes premiers achats
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const generateTokenBtn = document.getElementById('generateTokenBtn');
+    const mainGenerateTokenBtn = document.getElementById('mainGenerateTokenBtn');
+    const sendWhatsAppBtn = document.getElementById('sendWhatsAppBtn');
+    const activationTokenElement = document.getElementById('activationToken');
+    const mainActivationTokenElement = document.getElementById('mainActivationToken');
+
+    // Fonction pour générer un token
+    async function generateToken() {
+        try {
+            const response = await fetch('/profile/generate-whatsapp-token', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('success', data.message);
+                
+                // Mettre à jour les tokens affichés
+                if (activationTokenElement) {
+                    activationTokenElement.textContent = data.token;
+                }
+                if (mainActivationTokenElement) {
+                    mainActivationTokenElement.textContent = data.token;
+                }
+                
+                // Ouvrir WhatsApp
+                if (data.whatsapp_url) {
+                    window.open(data.whatsapp_url, '_blank');
+                }
+            } else {
+                showAlert('danger', data.message);
+            }
+        } catch (error) {
+            showAlert('danger', 'Erreur réseau: ' + error.message);
+        }
+    }
+
+    // Fonction pour envoyer sur WhatsApp
+    async function sendToWhatsApp() {
+        const token = activationTokenElement ? activationTokenElement.textContent : 
+                     mainActivationTokenElement ? mainActivationTokenElement.textContent : '';
+        
+        if (!token || token === 'Token non généré' || token === 'Générer un token') {
+            showAlert('warning', 'Veuillez d\'abord générer un token');
+            return;
+        }
+
+        try {
+            const response = await fetch('/profile/generate-whatsapp-token', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            
+            const data = await response.json();
+            
+            if (data.success && data.whatsapp_url) {
+                window.open(data.whatsapp_url, '_blank');
+            } else {
+                showAlert('danger', 'Erreur lors de l\'ouverture de WhatsApp');
+            }
+        } catch (error) {
+            showAlert('danger', 'Erreur réseau: ' + error.message);
+        }
+    }
+
+    // Événements
+    if (generateTokenBtn) {
+        generateTokenBtn.addEventListener('click', generateToken);
+    }
+    
+    if (mainGenerateTokenBtn) {
+        mainGenerateTokenBtn.addEventListener('click', generateToken);
+    }
+    
+    if (sendWhatsAppBtn) {
+        sendWhatsAppBtn.addEventListener('click', sendToWhatsApp);
+    }
+
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show animate-fade-in`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+});
+</script>
+{% endblock %}

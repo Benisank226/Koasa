@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Administration - Catégories - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-tags me-2 text-danger"></i>Gestion des Catégories</h2>
+        <div>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-outline-danger me-2">
+                <i class="fas fa-boxes me-2"></i>Produits
+            </a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <i class="fas fa-plus me-2"></i>Nouvelle Catégorie
+            </button>
+        </div>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h3 class="text-danger mb-0">{{ stats.total }}</h3>
+                    <small class="text-muted">Total catégories</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success mb-0">{{ stats.active }}</h3>
+                    <small class="text-muted">Catégories actives</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center border-info">
+                <div class="card-body">
+                    <!-- CORRECTION : Calcul du total des produits -->
+                    <h3 class="text-info mb-0">
+                        {% set total_products = [] %}
+                        {% for category in categories %}
+                            {% set _ = total_products.append(category.products|length) %}
+                        {% endfor %}
+                        {{ total_products|sum }}
+                    </h3>
+                    <small class="text-muted">Produits total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Liste des catégories -->
+    <div class="row">
+        {% for category in categories %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">
+                                <i class="{{ category.icon }} me-2 text-danger"></i>{{ category.name }}
+                            </h5>
+                            {% if category.description %}
+                            <p class="card-text text-muted small mb-2">{{ category.description }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="badge bg-{{ 'success' if category.is_active else 'secondary' }}">
+                            {{ 'Active' if category.is_active else 'Inactive' }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <!-- CORRECTION : Utilisation de category.products|length -->
+                        <span class="badge bg-info">
+                            <i class="fas fa-box me-1"></i>{{ category.products|length }} produit(s)
+                        </span>
+                    </div>
+                    
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-info btn-sm" 
+                                onclick="editCategory({{ category.to_dict()|tojson }})">
+                            <i class="fas fa-edit me-1"></i>Modifier
+                        </button>
+                        <button class="btn btn-outline-{{ 'warning' if category.is_active else 'success' }} btn-sm"
+                                onclick="toggleCategory({{ category.id }}, {{ category.is_active|lower }})">
+                            <i class="fas fa-{{ 'pause' if category.is_active else 'play' }} me-1"></i>
+                            {{ 'Désactiver' if category.is_active else 'Activer' }}
+                        </button>
+                        <!-- CORRECTION : Utilisation de category.products|length -->
+                        {% if category.products|length == 0 %}
+                        <button class="btn btn-outline-danger btn-sm"
+                                onclick="deleteCategory({{ category.id }}, '{{ category.name }}')">
+                            <i class="fas fa-trash me-1"></i>Supprimer
+                        </button>
+                        {% else %}
+                        <button class="btn btn-outline-secondary btn-sm" disabled title="Catégorie utilisée">
+                            <i class="fas fa-trash me-1"></i>Supprimer
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        Créée le {{ category.created_at.strftime('%d/%m/%Y') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Aucune catégorie créée</p>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                    <i class="fas fa-plus me-2"></i>Créer la première catégorie
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Ajouter Catégorie -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nouvelle Catégorie</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCategoryForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nom de la catégorie *</label>
+                        <input type="text" class="form-control" id="categoryName" required
+                               placeholder="Ex: Bœuf">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="categoryDescription" rows="3"
+                                  placeholder="Description de la catégorie..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Icône FontAwesome</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-icons"></i></span>
+                            <input type="text" class="form-control" id="categoryIcon" 
+                                   value="fas fa-cube" placeholder="fas fa-cube">
+                        </div>
+                        <small class="text-muted">
+                            Ex: fas fa-drumstick-bite, fas fa-fish, fas fa-paw
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-success" onclick="createCategory()">
+                    <i class="fas fa-save me-2"></i>Créer la catégorie
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Catégorie -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Modifier la Catégorie</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editCategoryContent">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Créer une nouvelle catégorie
+async function createCategory() {
+    const form = document.getElementById('addCategoryForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const categoryData = {
+        name: document.getElementById('categoryName').value.trim(),
+        description: document.getElementById('categoryDescription').value.trim(),
+        icon: document.getElementById('categoryIcon').value.trim() || 'fas fa-cube'
+    };
+    
+    try {
+        const response = await fetch('/admin/api/categories', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(categoryData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            document.getElementById('addCategoryForm').reset();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Modifier une catégorie
+function editCategory(category) {
+    const content = document.getElementById('editCategoryContent');
+    content.innerHTML = `
+        <form id="editCategoryForm">
+            <input type="hidden" id="editCategoryId" value="${category.id}">
+            <div class="mb-3">
+                <label class="form-label">Nom de la catégorie *</label>
+                <input type="text" class="form-control" id="editCategoryName" value="${category.name}" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" id="editCategoryDescription" rows="3">${category.description || ''}</textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Icône FontAwesome</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="${category.icon}"></i></span>
+                    <input type="text" class="form-control" id="editCategoryIcon" value="${category.icon}">
+                </div>
+            </div>
+            
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="editCategoryActive" ${category.is_active ? 'checked' : ''}>
+                <label class="form-check-label" for="editCategoryActive">
+                    Catégorie active
+                </label>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-success" onclick="updateCategory()">
+                    <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+            </div>
+        </form>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+}
+
+// Mettre à jour une catégorie
+async function updateCategory() {
+    const form = document.getElementById('editCategoryForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const categoryId = document.getElementById('editCategoryId').value;
+    const categoryData = {
+        name: document.getElementById('editCategoryName').value.trim(),
+        description: document.getElementById('editCategoryDescription').value.trim(),
+        icon: document.getElementById('editCategoryIcon').value.trim(),
+        is_active: document.getElementById('editCategoryActive').checked
+    };
+    
+    try {
+        const response = await fetch(`/admin/api/categories/${categoryId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(categoryData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Basculer l'état d'une catégorie
+async function toggleCategory(categoryId, isActive) {
+    try {
+        const response = await fetch(`/admin/api/categories/${categoryId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ is_active: !isActive })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+// Supprimer une catégorie
+async function deleteCategory(categoryId, categoryName) {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryName}" ?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/categories/${categoryId}`, {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', data.message);
+        }
+    } catch (error) {
+        showAlert('danger', 'Erreur réseau: ' + error.message);
+    }
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show animate-fade-in`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

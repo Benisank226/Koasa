@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Vérification Email - KOASA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow animate-fade-in">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>Vérification Email
+                    </h3>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-envelope fa-5x text-primary mb-3"></i>
+                        <h4>Vérifiez votre email</h4>
+                        <p class="text-muted">
+                            Nous avons envoyé un code de vérification à 6 chiffres à :
+                            <strong>{{ user.email }}</strong>
+                        </p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('verify_email', user_id=user.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-4">
+                            {{ form.verification_code.label(class="form-label h5") }}
+                            {{ form.verification_code(class="form-control form-control-lg text-center fs-3", 
+                                 placeholder="123456", maxlength="6", style="letter-spacing: 0.5em;") }}
+                            {% if form.verification_code.errors %}
+                            <div class="invalid-feedback d-block">{{ form.verification_code.errors[0] }}</div>
+                            {% endif %}
+                            <small class="text-muted">Saisissez les 6 chiffres reçus par email</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>Vérifier l'email
+                            </button>
+                            <a href="{{ url_for('resend_verification', user_id=user.id) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-2"></i>Renvoyer le code
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Important
+                        </h6>
+                        <p class="small mb-0">
+                            Le code de vérification est valable pendant <strong>5 minutes</strong>.
+                            Vous devez vérifier votre email pour activer votre compte.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const codeInput = document.getElementById('verification_code');
+    
+    // Auto-formatage du code
+    codeInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // Auto-focus
+    codeInput.focus();
+});
+</script>
+{% endblock %}
