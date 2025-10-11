@@ -83,7 +83,7 @@ def register():
             db.session.add(user)
             db.session.commit()
             
-            
+            """
             user.email_verified = True
             db.session.commit()
             flash('✅ Inscription réussie! Compte activé automatiquement.', 'success')
@@ -93,8 +93,6 @@ def register():
             
             flash('✅ Inscription réussie! Un code de vérification a été envoyé à votre email.', 'success')
             return redirect(url_for('verify_email', user_id=user.id))
-        """
-        
         
         except Exception as e:
             db.session.rollback()
