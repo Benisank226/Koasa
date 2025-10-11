@@ -25,10 +25,18 @@ from utils import (
     send_password_reset_email, generate_order_whatsapp_link,
     send_activation_confirmation_whatsapp, send_otp_whatsapp
 )
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')  # OBLIGATOIRE en prod
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
+
+# Configuration de la base de données
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Railway utilise PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
+else:
+    # Développement local
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
