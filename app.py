@@ -85,22 +85,18 @@ def register():
             )
             user.set_password(form.password.data)
             
-            verification_code = user.generate_email_verification_code()
-            user.generate_activation_token()
+            # ✅ DÉSACTIVER LA VÉRIFICATION EMAIL - COMPTE ACTIVÉ AUTOMATIQUEMENT
+            user.email_verified = True
+            user.whatsapp_verified = True  # WhatsApp activé aussi
             
             db.session.add(user)
             db.session.commit()
             
-            """
-            user.email_verified = True
-            db.session.commit()
-            flash('✅ Inscription réussie! Compte activé automatiquement.', 'success')
-            return redirect(url_for('login'))
-            """
-            send_verification_email(user, verification_code)
+            # ✅ CONNEXION AUTOMATIQUE APRÈS INSCRIPTION
+            login_user(user)
             
-            flash('✅ Inscription réussie! Un code de vérification a été envoyé à votre email.', 'success')
-            return redirect(url_for('verify_email', user_id=user.id))
+            flash('✅ Inscription réussie! Votre compte a été activé automatiquement.', 'success')
+            return redirect(url_for('index'))
         
         except Exception as e:
             db.session.rollback()
