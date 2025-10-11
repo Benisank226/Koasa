@@ -1,3 +1,6 @@
+import os
+import sendgrid
+from sendgrid.helpers.mail import Mail
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -68,53 +71,73 @@ def send_email(to_email, subject, html_content):
         return False
 
 def send_verification_email(user, verification_code):
-    """Envoie l'email de vérification"""
-    subject = "🔐 KOASA - Vérification de votre email"
-    
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background: #dc2626; color: white; padding: 20px; text-align: center; }}
-            .content {{ background: #f9f9f9; padding: 20px; }}
-            .code {{ font-size: 32px; font-weight: bold; text-align: center; color: #dc2626; margin: 20px 0; padding: 15px; background: #f8f9fa; border: 2px dashed #dc2626; border-radius: 8px; }}
-            .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #666; }}
-            .info {{ background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🥩 KOASA Boucherie</h1>
-                <h2>Vérification de votre email</h2>
-            </div>
-            <div class="content">
-                <p>Bonjour <strong>{user.first_name}</strong>,</p>
-                <p>Merci de vous être inscrit sur KOASA. Pour activer votre compte, veuillez utiliser le code de vérification suivant :</p>
-                
-                <div class="code">{verification_code}</div>
-                
-                <div class="info">
-                    <p><strong>⏱️ Ce code expire dans 5 minutes</strong></p>
-                    <p><strong>📍 Important :</strong> Ce code est nécessaire pour vérifier votre email et continuer le processus d'inscription.</p>
+    """
+    Envoie un email de vérification via SendGrid
+    """
+    try:
+        # Vérifier que les variables d'environnement sont présentes
+        api_key = os.environ.get('SENDGRID_API_KEY')
+        sender_email = os.environ.get('SENDER_EMAIL')
+        
+        if not api_key or not sender_email:
+            print("❌ Variables d'environnement SendGrid manquantes")
+            return False
+        
+        sg = sendgrid.SendGridAPIClient(api_key)
+        
+        verification_url = f"https://koasa.onrender.com/verify-email/{user.id}"
+        
+        message = Mail(
+            from_email=sender_email,
+            to_emails=user.email,
+            subject='🔐 Activez votre compte KOASA',
+            html_content=f'''
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 20px;">
+                <div style="background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0;">🥩 KOASA Boucherie</h1>
+                    <h2 style="margin: 10px 0 0 0;">Vérification de votre email</h2>
                 </div>
                 
-                <p>Si vous n'avez pas créé de compte sur KOASA, veuillez ignorer cet email.</p>
+                <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px;">
+                    <p>Bonjour <strong>{user.first_name}</strong>,</p>
+                    <p>Merci de vous être inscrit sur KOASA. Pour activer votre compte, veuillez utiliser le code de vérification suivant :</p>
+                    
+                    <div style="background: #f8f9fa; padding: 20px; text-align: center; margin: 20px 0; border: 2px dashed #dc2626; border-radius: 8px;">
+                        <h1 style="color: #dc2626; font-size: 32px; margin: 0; letter-spacing: 5px;">{verification_code}</h1>
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                        <p><strong>⏱️ Ce code expire dans 5 minutes</strong></p>
+                        <p><strong>📍 Important :</strong> Ce code est nécessaire pour vérifier votre email.</p>
+                    </div>
+                    
+                    <p style="text-align: center; margin-top: 30px;">
+                        <a href="{verification_url}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                            Activer mon compte directement
+                        </a>
+                    </p>
+                    
+                    <p style="color: #666; margin-top: 30px;">
+                        Si vous n'avez pas créé de compte sur KOASA, veuillez ignorer cet email.
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+                    <p>KOASA Boucherie Sankara & Fils - Ouagadougou, Burkina Faso</p>
+                    <p>📞 +226 69 62 84 77 | 📧 {sender_email}</p>
+                    <p>© 2024 KOASA. Tous droits réservés.</p>
+                </div>
             </div>
-            <div class="footer">
-                <p>KOASA Boucherie Sankara & Fils - Ouagadougou, Burkina Faso</p>
-                <p>📞 +226 69 62 84 77 | 📧 contact@koasa.bf</p>
-                <p>© 2024 KOASA. Tous droits réservés.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    return send_email(user.email, subject, html_content)
+            '''
+        )
+        
+        response = sg.send(message)
+        print(f"✅ Email de vérification envoyé à {user.email}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Erreur envoi email à {user.email}: {e}")
+        return False
 
 def send_password_reset_email(user, reset_token):
     """Envoie l'email de réinitialisation de mot de passe"""
