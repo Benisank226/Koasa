@@ -36,7 +36,10 @@ def send_email(to_email, subject, html_content):
     """
     Envoie un email réel via SMTP Gmail
     """
+    print(f"🔄 TENTATIVE ENVOI EMAIL À: {to_email}")
     try:
+        print(f"🔧 CONFIG SMTP: {EMAIL_CONFIG['username']}")
+        print(f"🔧 MOT DE PASSE PRÉSENT: {bool(EMAIL_CONFIG['password'])}")
         # Créer le message
         msg = MIMEMultipart()
         msg['From'] = f"{EMAIL_CONFIG['from_name']} <{EMAIL_CONFIG['username']}>"
