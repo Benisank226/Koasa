@@ -1143,7 +1143,18 @@ def initialize_database():
 
 with app.app_context():
     initialize_database()
-    
+"""  
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+"""    
+# FORCER L'INITIALISATION AU DÉMARRAGE
+if __name__ == '__main__':
+    with app.app_context():
+        print("🔧 INITIALISATION DE LA BASE DE DONNÉES...")
+        db.create_all()
+        initialize_database()
+        print("✅ BASE DE DONNÉES INITIALISÉE!")
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
