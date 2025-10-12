@@ -46,6 +46,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
 # Configuration de la base de données
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith('postgres'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
 """
 database_url = os.environ.get('DATABASE_URL')
 if database_url:
@@ -57,8 +62,8 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
     print("🎯 UTILISATION DE SQLITE")  # LOG
 """
+"""
 # Configuration de la base de données
-
 if os.environ.get('PGHOST'):
     # Utiliser les variables PostgreSQL individuelles de Railway
     db_uri = f"postgresql://{os.environ['PGUSER']}:{os.environ['PGPASSWORD']}@{os.environ['PGHOST']}:{os.environ['PGPORT']}/{os.environ['PGDATABASE']}"
@@ -68,6 +73,7 @@ else:
     # Développement local
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
     print("🎯 UTILISATION DE SQLITE")  # LOG
+"""
 """
 # Configuration de la base de données
 database_url = os.environ.get('DATABASE_URL')
