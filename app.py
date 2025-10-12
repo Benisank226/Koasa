@@ -58,11 +58,23 @@ else:
     print("🎯 UTILISATION DE SQLITE")  # LOG
 """
 # Configuration de la base de données
+"""
 if os.environ.get('PGHOST'):
     # Utiliser les variables PostgreSQL individuelles de Railway
     db_uri = f"postgresql://{os.environ['PGUSER']}:{os.environ['PGPASSWORD']}@{os.environ['PGHOST']}:{os.environ['PGPORT']}/{os.environ['PGDATABASE']}"
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     print(f"🎯 UTILISATION DE POSTGRESQL: {os.environ['PGHOST']}")  # LOG
+else:
+    # Développement local
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
+    print("🎯 UTILISATION DE SQLITE")  # LOG
+"""
+# Configuration de la base de données
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # Railway utilise PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
+    print(f"🎯 UTILISATION DE POSTGRESQL: {database_url[:50]}...")  # LOG
 else:
     # Développement local
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
