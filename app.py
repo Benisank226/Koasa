@@ -1,26 +1,13 @@
 import os
 from dotenv import load_dotenv
 
-# ✅ CORRECTION : Chargement intelligent des variables d'environnement
-def load_environment():
-    """Charge les variables d'environnement selon l'environnement"""
-    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL'):
-        # Environnement Railway - Production
-        print("🎯 ENVIRONNEMENT RAILWAY DÉTECTÉ")
-        if os.path.exists('.env.production'):
-            load_dotenv('.env.production')
-            print("🔧 .env.production chargé")
-    else:
-        # Développement local
-        print("🔧 ENVIRONNEMENT DÉVELOPPEMENT LOCAL")
-        if os.path.exists('.env'):
-            load_dotenv('.env')
-            print("🔧 .env chargé")
-        else:
-            print("⚠️  Fichier .env non trouvé")
-
-# Charger l'environnement
-load_environment()
+# Chargement basique de l'environnement
+if os.path.exists('.env.production'):
+    load_dotenv('.env.production')
+    print("🔧 .env.production chargé")
+else:
+    load_dotenv('.env')
+    print("🔧 .env chargé")
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -46,20 +33,48 @@ from utils import (
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
-# ✅ CORRECTION AMÉLIORÉE : Configuration PostgreSQL pour Railway
+# ✅ DÉTECTION INTELLIGENTE POSTGRESQL RAILWAY
+print("=" * 50)
+print("🔍 DIAGNOSTIC BASE DE DONNÉES RAILWAY")
+print("=" * 50)
+
+# Méthode 1: DATABASE_URL directe
 database_url = os.environ.get('DATABASE_URL')
 
-if database_url:
-    # Environnement Railway - PostgreSQL
+# Méthode 2: Variables PostgreSQL individuelles
+pg_host = os.environ.get('PGHOST')
+pg_user = os.environ.get('PGUSER')
+pg_password = os.environ.get('PGPASSWORD')
+pg_database = os.environ.get('PGDATABASE')
+pg_port = os.environ.get('PGPORT', '5432')
+
+print(f"DATABASE_URL: {'✅ PRÉSENTE' if database_url else '❌ ABSENTE'}")
+print(f"PGHOST: {pg_host or '❌ NON DÉFINI'}")
+print(f"PGDATABASE: {pg_database or '❌ NON DÉFINI'}")
+
+if database_url and database_url.startswith('postgres'):
+    # PostgreSQL Railway détecté via DATABASE_URL
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        print("🔄 Conversion postgres:// → postgresql://")
+    
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    print(f"🎯 CONNEXION POSTGRESQL RAILWAY ACTIVÉE")
-    print(f"🔗 Environnement: {os.environ.get('RAILWAY_ENVIRONMENT', 'Production')}")
+    print("🎯 POSTGRESQL CONFIGURÉ (DATABASE_URL)")
+    print(f"🔗 Base: {database_url.split('@')[-1] if '@' in database_url else 'URL masquée'}")
+
+elif pg_host and pg_user and pg_password and pg_database:
+    # Construction URL depuis variables individuelles
+    database_url = f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_database}"
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    print("🎯 POSTGRESQL CONFIGURÉ (VARIABLES INDIVIDUELLES)")
+    print(f"🔗 Hôte: {pg_host}, Base: {pg_database}")
+
 else:
-    # Développement local - SQLite
+    # Fallback SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-    print("🔧 MODE DÉVELOPPEMENT : SQLITE")
+    print("🔧 SQLITE (DÉVELOPPEMENT LOCAL)")
+
+print("=" * 50)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -77,7 +92,7 @@ login_manager.login_message_category = 'warning'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # Normalisation des numéros de téléphone
 def normalize_phone(phone):
@@ -990,7 +1005,9 @@ def send_order_whatsapp():
 def initialize_database():
     with app.app_context():
         try:
+            print("🔧 Tentative de création des tables...")
             db.create_all()
+            print("✅ Tables créées avec succès")
             
             # Créer l'admin
             admin = User.query.filter_by(email='sankarabienvenu226@gmail.com').first()
@@ -1074,14 +1091,14 @@ def initialize_database():
         except Exception as e:
             print(f"❌ Erreur d'initialisation: {e}")
             db.session.rollback()
-            raise e
 
 # FORCER L'INITIALISATION AU DÉMARRAGE
 if __name__ == '__main__':
     with app.app_context():
-        print("🔧 INITIALISATION DE LA BASE DE DONNÉES...")
+        print("🔧 DÉMARRAGE DE L'APPLICATION...")
         initialize_database()
     
     port = int(os.environ.get('PORT', 5000))
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    print(f"🌐 Démarrage sur le port {port} (debug: {debug_mode})")
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
