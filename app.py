@@ -1,10 +1,27 @@
 import os
 from dotenv import load_dotenv
-# Charge .env en développement, .env.production en production
-if os.path.exists('.env.production'):
-    load_dotenv('.env.production')
-else:
-    load_dotenv('.env')  # Défaut pour le développement
+
+# ✅ CORRECTION : Chargement intelligent des variables d'environnement
+def load_environment():
+    """Charge les variables d'environnement selon l'environnement"""
+    if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('DATABASE_URL'):
+        # Environnement Railway - Production
+        print("🎯 ENVIRONNEMENT RAILWAY DÉTECTÉ")
+        if os.path.exists('.env.production'):
+            load_dotenv('.env.production')
+            print("🔧 .env.production chargé")
+    else:
+        # Développement local
+        print("🔧 ENVIRONNEMENT DÉVELOPPEMENT LOCAL")
+        if os.path.exists('.env'):
+            load_dotenv('.env')
+            print("🔧 .env chargé")
+        else:
+            print("⚠️  Fichier .env non trouvé")
+
+# Charger l'environnement
+load_environment()
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -25,69 +42,33 @@ from utils import (
     send_password_reset_email, generate_order_whatsapp_link,
     send_activation_confirmation_whatsapp, send_otp_whatsapp
 )
-"""
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')  # OBLIGATOIRE en prod
 
-# Configuration de la base de données
-database_url = os.environ.get('DATABASE_URL')
-if database_url:
-    # Railway utilise PostgreSQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
-else:
-    # Développement local
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db.init_app(app)
-"""
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
-# Configuration de la base de données
+# ✅ CORRECTION AMÉLIORÉE : Configuration PostgreSQL pour Railway
 database_url = os.environ.get('DATABASE_URL')
-if database_url and database_url.startswith('postgres'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-"""
-database_url = os.environ.get('DATABASE_URL')
+
 if database_url:
-    # Railway utilise PostgreSQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
-    print(f"🎯 UTILISATION DE POSTGRESQL: {database_url[:50]}...")  # LOG
+    # Environnement Railway - PostgreSQL
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    print(f"🎯 CONNEXION POSTGRESQL RAILWAY ACTIVÉE")
+    print(f"🔗 Environnement: {os.environ.get('RAILWAY_ENVIRONMENT', 'Production')}")
 else:
-    # Développement local
+    # Développement local - SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-    print("🎯 UTILISATION DE SQLITE")  # LOG
-"""
-"""
-# Configuration de la base de données
-if os.environ.get('PGHOST'):
-    # Utiliser les variables PostgreSQL individuelles de Railway
-    db_uri = f"postgresql://{os.environ['PGUSER']}:{os.environ['PGPASSWORD']}@{os.environ['PGHOST']}:{os.environ['PGPORT']}/{os.environ['PGDATABASE']}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-    print(f"🎯 UTILISATION DE POSTGRESQL: {os.environ['PGHOST']}")  # LOG
-else:
-    # Développement local
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-    print("🎯 UTILISATION DE SQLITE")  # LOG
-"""
-"""
-# Configuration de la base de données
-database_url = os.environ.get('DATABASE_URL')
-if database_url:
-    # Railway utilise PostgreSQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url.replace('postgres://', 'postgresql://')
-    print(f"🎯 UTILISATION DE POSTGRESQL: {database_url[:50]}...")  # LOG
-else:
-    # Développement local
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///koasa.db'
-    print("🎯 UTILISATION DE SQLITE")  # LOG
-"""
+    print("🔧 MODE DÉVELOPPEMENT : SQLITE")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 300,
+    'pool_pre_ping': True
+}
+
 db.init_app(app)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -113,46 +94,6 @@ def normalize_phone(phone):
     return phone if phone.startswith('+') else phone
 
 # Routes existantes (inchangées)
-"""
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    form = RegistrationForm()
-    
-    if form.validate_on_submit():
-        try:
-            normalized_phone = normalize_phone(form.phone.data)
-            
-            user = User(
-                email=form.email.data.lower(),
-                phone=normalized_phone,
-                first_name=form.first_name.data,
-                last_name=form.last_name.data,
-                is_active=True
-            )
-            user.set_password(form.password.data)
-            
-            # ✅ DÉSACTIVER LA VÉRIFICATION EMAIL - COMPTE ACTIVÉ AUTOMATIQUEMENT
-            user.email_verified = True
-            user.whatsapp_verified = True  # WhatsApp activé aussi
-            
-            db.session.add(user)
-            db.session.commit()
-            
-            # ✅ CONNEXION AUTOMATIQUE APRÈS INSCRIPTION
-            login_user(user)
-            
-            flash('✅ Inscription réussie! Votre compte a été activé automatiquement.', 'success')
-            return redirect(url_for('index'))
-        
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erreur lors de l\'inscription: {str(e)}', 'danger')
-    
-    return render_template('register.html', form=form)
-"""
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -288,45 +229,7 @@ def activate_account():
             flash('Token d\'activation invalide.', 'danger')
     
     return redirect(url_for('login'))
-"""
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    
-    form = LoginForm()
-    activate_form = ActivateAccountForm()
-    
-    if form.validate_on_submit():
-        login_input = form.login.data.lower()
-        password = form.password.data
-        
-        user = User.query.filter(
-            (User.email == login_input) | 
-            (User.phone == normalize_phone(login_input))
-        ).first()
-        
-        if user:
-            if not user.email_verified:
-                flash('⚠️ Veuillez vérifier votre email avant de vous connecter.', 'warning')
-                return redirect(url_for('verify_email', user_id=user.id))
-            
-            if user.check_password(password):
-                login_user(user, remember=form.remember_me.data)
-                flash(f'Bienvenue {user.first_name}!', 'success')
-                
-                if not user.whatsapp_verified:
-                    flash('⚠️ Vérifiez votre WhatsApp pour passer commande.', 'warning')
-                
-                next_page = request.args.get('next')
-                return redirect(next_page) if next_page else redirect(url_for('index'))
-            else:
-                flash('Email/téléphone ou mot de passe incorrect.', 'danger')
-        else:
-            flash('Email/téléphone ou mot de passe incorrect.', 'danger')
-    
-    return render_template('login.html', form=form, activate_form=activate_form)
-"""
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -1105,7 +1008,7 @@ def initialize_database():
                 )
                 admin.set_password('Capi5688@1234')
                 db.session.add(admin)
-                print("✅ Compte admin créé: admin@koasa.bf / admin123")
+                print("✅ Compte admin créé: sankarabienvenu226@gmail.com")
             
             # Créer les catégories par défaut
             if Category.query.count() == 0:
@@ -1166,25 +1069,19 @@ def initialize_database():
                 print("✅ Produits de démonstration ajoutés")
             
             db.session.commit()
+            print("🎉 Base de données initialisée avec succès!")
             
         except Exception as e:
             print(f"❌ Erreur d'initialisation: {e}")
             db.session.rollback()
+            raise e
 
-with app.app_context():
-    initialize_database()
-"""  
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
-"""    
 # FORCER L'INITIALISATION AU DÉMARRAGE
 if __name__ == '__main__':
     with app.app_context():
         print("🔧 INITIALISATION DE LA BASE DE DONNÉES...")
-        db.create_all()
         initialize_database()
-        print("✅ BASE DE DONNÉES INITIALISÉE!")
     
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

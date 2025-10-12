@@ -10,20 +10,9 @@ import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-"""
-import os
 
-# Configuration email avec vos identifiants CORRECTS
-EMAIL_CONFIG = {
-    'host': 'smtp.gmail.com',
-    'port': 587,
-    'username': 'sankarabienvenu226@gmail.com',  # Votre email Gmail
-    'password': 'sepmugnkevikwiqx',          # Votre mot de passe d'application (avec espaces)
-    'from_name': 'KOASA'
-}
-"""
 import os
-
+# Configuration email CORRIGÉE
 EMAIL_CONFIG = {
     'host': os.environ.get('SMTP_SERVER', 'smtp.gmail.com'),
     'port': int(os.environ.get('SMTP_PORT', 587)),
@@ -31,6 +20,8 @@ EMAIL_CONFIG = {
     'password': os.environ.get('SMTP_PASSWORD', ''),
     'from_name': 'KOASA'
 }
+
+# ... le reste de utils.py reste inchangé ...
 
 def send_email(to_email, subject, html_content):
     """
