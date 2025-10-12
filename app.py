@@ -65,6 +65,7 @@ def normalize_phone(phone):
     return phone if phone.startswith('+') else phone
 
 # Routes existantes (inchangées)
+"""
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -97,6 +98,43 @@ def register():
             
             flash('✅ Inscription réussie! Votre compte a été activé automatiquement.', 'success')
             return redirect(url_for('index'))
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erreur lors de l\'inscription: {str(e)}', 'danger')
+    
+    return render_template('register.html', form=form)
+"""
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = RegistrationForm()
+    
+    if form.validate_on_submit():
+        try:
+            normalized_phone = normalize_phone(form.phone.data)
+            
+            user = User(
+                email=form.email.data.lower(),
+                phone=normalized_phone,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                is_active=True
+            )
+            user.set_password(form.password.data)
+            
+            # ✅ VÉRIFICATION WHATSAPP SEULEMENT
+            user.email_verified = True  # Email auto-validé
+            user.generate_activation_token()  # Token WhatsApp
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            # ✅ REDIRECTION VERS VÉRIFICATION WHATSAPP
+            flash('✅ Inscription réussie! Vérifiez votre WhatsApp pour activer votre compte.', 'success')
+            return redirect(url_for('verify_whatsapp_now', user_id=user.id))
         
         except Exception as e:
             db.session.rollback()
@@ -202,7 +240,7 @@ def activate_account():
             flash('Token d\'activation invalide.', 'danger')
     
     return redirect(url_for('login'))
-
+"""
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -231,6 +269,42 @@ def login():
                 
                 if not user.whatsapp_verified:
                     flash('⚠️ Vérifiez votre WhatsApp pour passer commande.', 'warning')
+                
+                next_page = request.args.get('next')
+                return redirect(next_page) if next_page else redirect(url_for('index'))
+            else:
+                flash('Email/téléphone ou mot de passe incorrect.', 'danger')
+        else:
+            flash('Email/téléphone ou mot de passe incorrect.', 'danger')
+    
+    return render_template('login.html', form=form, activate_form=activate_form)
+"""
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    activate_form = ActivateAccountForm()
+    
+    if form.validate_on_submit():
+        login_input = form.login.data.lower()
+        password = form.password.data
+        
+        user = User.query.filter(
+            (User.email == login_input) | 
+            (User.phone == normalize_phone(login_input))
+        ).first()
+        
+        if user:
+            # ✅ VÉRIFICATION WHATSAPP OBLIGATOIRE
+            if not user.whatsapp_verified:
+                flash('⚠️ Veuillez vérifier votre WhatsApp avant de vous connecter.', 'warning')
+                return redirect(url_for('verify_whatsapp_now', user_id=user.id))
+            
+            if user.check_password(password):
+                login_user(user, remember=form.remember_me.data)
+                flash(f'Bienvenue {user.first_name}!', 'success')
                 
                 next_page = request.args.get('next')
                 return redirect(next_page) if next_page else redirect(url_for('index'))
