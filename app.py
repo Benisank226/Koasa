@@ -1,17 +1,9 @@
 import os
 from dotenv import load_dotenv
-
-# Chargement basique de l'environnement
-if os.path.exists('.env.production'):
-    load_dotenv('.env.production')
-    print("🔧 .env.production chargé")
-else:
-    load_dotenv('.env')
-    print("🔧 .env chargé")
-
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from datetime import datetime, timedelta, timezone
 import os
 import secrets
@@ -30,8 +22,19 @@ from utils import (
     send_activation_confirmation_whatsapp, send_otp_whatsapp
 )
 
+# Chargement basique de l'environnement
+if os.path.exists('.env.production'):
+    load_dotenv('.env.production')
+    print("🔧 .env.production chargé")
+else:
+    load_dotenv('.env')
+    print("🔧 .env chargé")
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+
+# 🔧 CONFIGURATION POUR RAILWAY + HTTPS
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # ✅ DÉTECTION INTELLIGENTE POSTGRESQL RAILWAY
 print("=" * 50)
@@ -93,6 +96,43 @@ login_manager.login_message_category = 'warning'
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+# 🔧 MIDDLEWARE POUR FORCER HTTPS EN PRODUCTION
+@app.before_request
+def force_https():
+    """Redirige HTTP vers HTTPS en production"""
+    if os.environ.get('FLASK_ENV') == 'production':
+        if request.headers.get('X-Forwarded-Proto') == 'http':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
+
+# 🔧 EN-TÊTES DE SÉCURITÉ
+@app.after_request
+def set_security_headers(response):
+    """Ajoute des en-têtes de sécurité HTTP"""
+    # HSTS - Force HTTPS
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # Protection XSS
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    
+    # CSP - Content Security Policy
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "font-src 'self'; "
+        "object-src 'none'; "
+        "media-src 'self'; "
+        "frame-src 'none'; "
+        "base-uri 'self';"
+    )
+    
+    return response
 
 # Normalisation des numéros de téléphone
 def normalize_phone(phone):
