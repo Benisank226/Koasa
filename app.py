@@ -29,6 +29,7 @@ from utils import (
     send_password_reset_email, generate_order_whatsapp_link,
     send_activation_confirmation_whatsapp, send_otp_whatsapp
 )
+from flask import Flask, render_template, send_from_directory
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
@@ -876,6 +877,10 @@ def toggle_admin(user_id):
     })
 
 # --- ROUTES PRINCIPALES ---
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
 @app.route('/')
 def index():
     # Récupérer les paramètres de filtrage
