@@ -174,8 +174,8 @@ class Order(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    order_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
-    whatsapp_order_id = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    order_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    whatsapp_order_id = db.Column(db.String(50), unique=True, nullable=False, index=True)
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='en_attente')
     delivery_address = db.Column(db.Text)
