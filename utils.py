@@ -10,8 +10,9 @@ import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+import urllib.parse
 import os
+
 # Configuration email CORRIGÉE
 EMAIL_CONFIG = {
     'host': os.environ.get('SMTP_SERVER', 'smtp.gmail.com'),
@@ -20,8 +21,6 @@ EMAIL_CONFIG = {
     'password': os.environ.get('SMTP_PASSWORD', ''),
     'from_name': 'KOASA'
 }
-
-# ... le reste de utils.py reste inchangé ...
 
 def send_email(to_email, subject, html_content):
     """
@@ -188,7 +187,7 @@ Mon numéro: {phone}
 Merci de vérifier mon WhatsApp!
 """
     
-    encoded_message = requests.utils.quote(message)
+    encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://wa.me/{admin_phone}?text={encoded_message}"
     
     return whatsapp_url
@@ -218,7 +217,7 @@ Ne partagez ce code avec personne!
 """
     
     # Générer le lien WhatsApp pour l'envoi
-    encoded_message = requests.utils.quote(message)
+    encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://wa.me/{user.phone}?text={encoded_message}"
     
     print(f"📱 Code OTP WhatsApp généré pour: {user.phone}")
@@ -253,7 +252,7 @@ Votre commande est en préparation! 🥩
 Merci de votre confiance! 🙏
 """
     
-    encoded_message = requests.utils.quote(message)
+    encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://wa.me/{user.phone}?text={encoded_message}"
     
     return whatsapp_url
@@ -272,19 +271,21 @@ Vous pouvez maintenant passer commande sur KOASA.
 Merci de votre confiance! 🥩
 """
     
-    encoded_message = requests.utils.quote(message)
+    encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://wa.me/{user.phone}?text={encoded_message}"
     
     return whatsapp_url
 
+# --- FONCTION CORRIGÉE POUR GÉNÉRER LE LIEN WHATSAPP ---
 def generate_order_whatsapp_link(cart_items, total, user, whatsapp_order_id, delivery_address="", notes=""):
     """
     Génère un lien WhatsApp avec le récapitulatif de commande pour l'admin
     """
     admin_phone = "+22669628477"
     
+    # Formater les items correctement
     items_text = "\n".join([
-        f"• {item['name']} - {item['quantity']} {item.get('unit', 'unité')} x {item['price']:,.0f} = {item['price'] * item['quantity']:,.0f} FCFA"
+        f"• {item['name']} - {item['quantity']} {item.get('unit', 'unité')} x {item['price']:,.0f} FCFA = {(item['price'] * item['quantity']):,.0f} FCFA"
         for item in cart_items
     ])
     
@@ -314,9 +315,11 @@ Email: {user.email}
 Merci de préparer cette commande! 🥩
 """
     
-    encoded_message = requests.utils.quote(message)
+    # Encodage URL correct
+    encoded_message = urllib.parse.quote(message)
     whatsapp_url = f"https://wa.me/{admin_phone}?text={encoded_message}"
     
+    print(f"🔗 Lien WhatsApp généré: {whatsapp_url}")
     return whatsapp_url
 
 def generate_invoice_pdf(order, user):

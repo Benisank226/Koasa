@@ -248,7 +248,7 @@ function renderCart() {
 }
 
 // ============================================================================
-// COMMANDES WHATSAPP
+// COMMANDES WHATSAPP - FONCTION CORRIGÉE
 // ============================================================================
 
 async function sendOrderByWhatsApp() {
@@ -269,11 +269,21 @@ async function sendOrderByWhatsApp() {
         const deliveryAddress = document.getElementById('deliveryAddress')?.value || '';
         const notes = document.getElementById('orderNotes')?.value || '';
         
-        // Préparer les données du panier avec sous-totaux calculés
+        // CORRECTION: Préparer les données du panier avec la structure attendue par le backend
         const cartItems = cart.map(item => ({
-            ...item,
-            subtotal: item.price * item.quantity
+            product_id: item.product_id,  // Nom correct attendu par le backend
+            name: item.name,              // Pour le message WhatsApp
+            quantity: item.quantity,
+            price: item.price,
+            unit: item.unit
         }));
+        
+        console.log('📦 Données envoyées:', {  // Debug
+            items: cartItems,
+            total: total,
+            delivery_address: deliveryAddress,
+            notes: notes
+        });
         
         const response = await fetch('/api/send-order-whatsapp', {
             method: 'POST',
@@ -314,9 +324,11 @@ async function sendOrderByWhatsApp() {
             }
         } else {
             showToast('❌ ' + data.message, 'danger');
+            console.error('❌ Erreur backend:', data); // Debug
         }
     } catch (error) {
         showToast('❌ Erreur: ' + error.message, 'danger');
+        console.error('❌ Erreur fetch:', error); // Debug
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fab fa-whatsapp me-2"></i>Commander via WhatsApp';

@@ -174,104 +174,15 @@ renderCart = function() {
     updateCartSummary();
 };
 
-// Modifier la fonction d'envoi WhatsApp
-async function sendOrderByWhatsApp() {
-    // Vérifier si WhatsApp est vérifié (sécurité supplémentaire)
-    {% if not current_user.whatsapp_verified %}
-    showToast('❌ Veuillez vérifier votre WhatsApp avant de commander', 'warning');
-    window.location.href = "{{ url_for('profile') }}";
-    return;
-    {% endif %}
-
-    if (cart.length === 0) {
-        showToast('❌ Votre panier est vide', 'warning');
-        return;
-    }
-    
-    const btn = document.getElementById('sendOrderWhatsAppBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Préparation...';
-    
-    try {
-        // Calculer correctement le total
-        const total = getCartTotal();
-        
-        // Récupérer l'adresse et les notes
-        const deliveryAddress = document.getElementById('deliveryAddress')?.value || '';
-        const notes = document.getElementById('orderNotes')?.value || '';
-        
-        // Préparer les données du panier avec sous-totaux calculés
-        const cartItems = cart.map(item => ({
-            ...item,
-            subtotal: item.price * item.quantity
-        }));
-        
-        const response = await fetch('/api/send-order-whatsapp', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                items: cartItems,
-                total: total,
-                delivery_address: deliveryAddress,
-                notes: notes
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast(data.message, 'success');
-            
-            // VIDER LE PANIER après envoi réussi
-            clearCart();
-            renderCart();
-            updateCartSummary();
-            
-            // Ouvrir WhatsApp dans un nouvel onglet
-            if (data.whatsapp_url) {
-                window.open(data.whatsapp_url, '_blank');
-            }
-            
-            // Afficher l'ID de commande
-            if (data.order_id) {
-                showModal(
-                    '✅ Commande créée!',
-                    `Votre commande a été créée avec succès!<br><br>
-                    <strong>ID de commande:</strong> ${data.order_id}<br><br>
-                    WhatsApp s'ouvre automatiquement. Veuillez envoyer le message à l'admin.<br><br>
-                    Vous pouvez suivre votre commande dans votre profil.`,
-                    'success'
-                );
-            }
-        } else {
-            // Si WhatsApp n'est pas vérifié, rediriger vers le profil
-            if (data.message.includes('WhatsApp')) {
-                showToast('❌ ' + data.message, 'warning');
-                setTimeout(() => {
-                    window.location.href = "{{ url_for('profile') }}";
-                }, 2000);
-            } else {
-                showToast('❌ ' + data.message, 'danger');
-            }
-        }
-    } catch (error) {
-        showToast('❌ Erreur: ' + error.message, 'danger');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fab fa-whatsapp me-2"></i>Commander via WhatsApp';
-    }
-}
+// La fonction sendOrderByWhatsApp est maintenant dans main.js corrigé
+// Elle utilise la structure de données correcte
 
 // Remplacer l'ancienne fonction
 document.addEventListener('DOMContentLoaded', function() {
     initCartPage();
     updateCartSummary();
     
-    // Nouveau bouton
-    const whatsappBtn = document.getElementById('sendOrderWhatsAppBtn');
-    if (whatsappBtn) {
-        whatsappBtn.addEventListener('click', sendOrderByWhatsApp);
-    }
+    // Le bouton est déjà initialisé dans initCartPage()
 });
 </script>
 {% endblock %}

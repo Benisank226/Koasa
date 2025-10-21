@@ -928,6 +928,7 @@ def download_invoice(order_id):
         mimetype='application/pdf'
     )
 
+# --- ROUTE CORRIGÉE POUR WHATSAPP ---
 @app.route('/api/send-order-whatsapp', methods=['POST'])
 @login_required
 def send_order_whatsapp():
@@ -938,7 +939,15 @@ def send_order_whatsapp():
             'redirect': url_for('profile')
         }), 403
     
-    data = request.json
+    data = request.get_json()  # CORRECTION: utiliser get_json() au lieu de .json
+    print(f"📦 Données reçues: {data}")  # Debug
+    
+    if not data:
+        return jsonify({
+            'success': False,
+            'message': 'Données manquantes'
+        }), 400
+    
     cart_items = data.get('items', [])
     delivery_address = data.get('delivery_address', '')
     notes = data.get('notes', '')
@@ -950,6 +959,7 @@ def send_order_whatsapp():
         }), 400
     
     try:
+        # Créer la commande
         order = Order(user_id=current_user.id)
         order.generate_order_number()
         order.generate_whatsapp_order_id()
@@ -957,15 +967,24 @@ def send_order_whatsapp():
         order.notes = notes
         
         total = 0
+        items_added = 0
         
         for item in cart_items:
-            product = Product.query.get(item['product_id'])
+            product_id = item.get('product_id')
+            if not product_id:
+                continue
+                
+            product = Product.query.get(product_id)
             if not product or not product.is_available:
+                print(f"❌ Produit non disponible: {product_id}")
                 continue
             
             try:
-                quantity = float(item['quantity'])
+                quantity = float(item.get('quantity', 0))
+                if quantity <= 0:
+                    continue
             except (ValueError, TypeError):
+                print(f"❌ Quantité invalide: {item.get('quantity')}")
                 continue
 
             subtotal = quantity * product.price
@@ -979,6 +998,14 @@ def send_order_whatsapp():
                 subtotal=subtotal
             )
             order.items.append(order_item)
+            items_added += 1
+        
+        # Vérifier qu'au moins un article a été ajouté
+        if items_added == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Aucun produit valide dans le panier'
+            }), 400
         
         order.total_amount = total
         order.status = 'en_attente'
@@ -986,10 +1013,14 @@ def send_order_whatsapp():
         db.session.add(order)
         db.session.commit()
         
+        # Générer le lien WhatsApp APRÈS la création de la commande
         whatsapp_url = generate_order_whatsapp_link(
             cart_items, total, current_user, 
             order.whatsapp_order_id, delivery_address, notes
         )
+        
+        print(f"✅ Commande créée: {order.whatsapp_order_id}")
+        print(f"🔗 Lien WhatsApp: {whatsapp_url}")
         
         return jsonify({
             'success': True,
@@ -1000,11 +1031,23 @@ def send_order_whatsapp():
     
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Order creation error: {str(e)}")
+        print(f"❌ Erreur création commande: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         return jsonify({
             'success': False,
-            'message': f'Erreur: {str(e)}'
+            'message': f'Erreur lors de la création de commande: {str(e)}'
         }), 500
+
+# Route de débogage
+@app.route('/debug/cart', methods=['POST'])
+@login_required
+def debug_cart():
+    data = request.get_json()
+    print("🔍 DEBUG - Données reçues:")
+    print(data)
+    return jsonify({"received": True, "data": data})
 
 # Initialisation de la base de données
 def initialize_database():
