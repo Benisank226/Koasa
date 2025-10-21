@@ -174,8 +174,8 @@ class Order(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    order_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
-    whatsapp_order_id = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    order_number = db.Column(db.String(30), unique=True, nullable=False, index=True)  # CORRIGÉ: 20 → 30
+    whatsapp_order_id = db.Column(db.String(25), unique=True, nullable=False, index=True)  # CORRIGÉ: 20 → 25
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='en_attente')
     delivery_address = db.Column(db.Text)
@@ -193,9 +193,9 @@ class Order(db.Model):
         return self.order_number
     
     def generate_whatsapp_order_id(self):
-        date_part = datetime.now(timezone.utc).strftime('%Y%m%d')
+        date_part = datetime.now(timezone.utc).strftime('%y%m%d')  # CORRIGÉ: %Y → %y (année sur 2 chiffres)
         random_part = secrets.token_hex(3).upper()
-        self.whatsapp_order_id = f"CMD-{date_part}-{random_part}"
+        self.whatsapp_order_id = f"CMD-{date_part}-{random_part}"  # Maintenant 18 caractères max
         return self.whatsapp_order_id
     
     def confirm_by_admin(self):
