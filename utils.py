@@ -155,7 +155,7 @@ def send_password_reset_email(user, reset_token):
             </div>
             <div class="footer">
                 <p>KOASA Boucherie Sankara & Fils - Ouagadougou, Burkina Faso</p>
-                <p>📞 +226 69 62 84 77 | 📧 contact@koasa.bf</p>
+                <p>📞 +226 69 62 84 77 | 📧 contact.koasa@gmail.com</p>
                 <p>© 2024 KOASA. Tous droits réservés.</p>
             </div>
         </div>
@@ -351,7 +351,7 @@ def generate_invoice_pdf(order, user):
     elements.append(Paragraph("🥩 KOASA", title_style))
     elements.append(Paragraph("Boucherie Sankara & Fils", styles['Normal']))
     elements.append(Paragraph("Ouagadougou, Burkina Faso", styles['Normal']))
-    elements.append(Paragraph("Tél: +226 XX XX XX XX", styles['Normal']))
+    elements.append(Paragraph("Tél: +226 66 53 60 60", styles['Normal']))
     elements.append(Spacer(1, 1*cm))
     
     # Titre facture
